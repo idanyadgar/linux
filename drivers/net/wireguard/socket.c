@@ -18,7 +18,7 @@
 #include <net/ipv6.h>
 
 static void update_mtu_if_needed(struct net_device *wg_dev,
-		 unsigned int phy_mtu, unsigned int encap_packet_size,
+		 unsigned int phy_mtu, unsigned int wg_message_size,
 		 unsigned int nh_overhead)
 {
 	/* If the wg interface mtu is too large, the final encapsulated packet
@@ -26,8 +26,8 @@ static void update_mtu_if_needed(struct net_device *wg_dev,
 	 * cause fragmentation. In such a case, reduce the wg interface mtu to
 	 * prevent future cases where we get packets that are too big
 	 */
-	int total_packet_size = encap_packet_size + nh_overhead;
-	if (unlikely(total_packet_size > phy_mtu)) {
+	int encap_packet_size = wg_message_size + nh_overhead;
+	if (unlikely(encap_packet_size > phy_mtu)) {
 		int new_mtu = phy_mtu - MESSAGE_MINIMUM_LENGTH - nh_overhead;
 		net_dbg_ratelimited("%s: tunnel packet is too large, reducing mtu to %d\n",
 					wg_dev->name, new_mtu);
