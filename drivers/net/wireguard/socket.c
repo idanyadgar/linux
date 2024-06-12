@@ -99,8 +99,9 @@ static int send4(struct wg_device *wg, struct sk_buff *skb,
 			dst_cache_set_ip4(cache, &rt->dst, fl.saddr);
 	}
 
-	update_wg_mtu_if_needed(wg->dev, rt->dst.dev->mtu, skb->len,
-	                        sizeof(struct iphdr) + sizeof(struct udphdr));
+	if (wg->dynamic_mtu)
+		update_wg_mtu_if_needed(wg->dev, rt->dst.dev->mtu, skb->len,
+		                        sizeof(struct iphdr) + sizeof(struct udphdr));
 
 	skb->ignore_df = 1;
 	udp_tunnel_xmit_skb(rt, sock, skb, fl.saddr, fl.daddr, ds,
@@ -169,8 +170,9 @@ static int send6(struct wg_device *wg, struct sk_buff *skb,
 			dst_cache_set_ip6(cache, dst, &fl.saddr);
 	}
 
-	update_wg_mtu_if_needed(wg->dev, rt->dst.dev->mtu, skb->len,
-	                        sizeof(struct ipv6hdr) + sizeof(struct udphdr));
+	if (wg->dynamic_mtu)
+		update_wg_mtu_if_needed(wg->dev, rt->dst.dev->mtu, skb->len,
+		                        sizeof(struct ipv6hdr) + sizeof(struct udphdr));
 
 	skb->ignore_df = 1;
 	udp_tunnel6_xmit_skb(dst, sock, skb, skb->dev, &fl.saddr, &fl.daddr, ds,
