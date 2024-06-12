@@ -17,6 +17,27 @@
 #include <net/udp_tunnel.h>
 #include <net/ipv6.h>
 
+static void update_wg_mtu_if_needed(struct net_device *wg_dev,
+		 unsigned int phy_mtu, unsigned int wg_message_size,
+		 unsigned int nh_overhead)
+{
+	/* If the encapsulated packet is larger than the underlying physical
+	 * interface mtu, it will be fragmented and we want to avoid that.
+	 * In such a case, reduce the wg interface mtu to prevent future cases
+	 * where we get packets that are too big.
+	 */
+	int encap_packet_size = wg_message_size + nh_overhead;
+	if (unlikely(encap_packet_size > phy_mtu)) {
+		int new_mtu = phy_mtu - MESSAGE_MINIMUM_LENGTH - nh_overhead;
+		if (unlikely(new_mtu >= READ_ONCE(wg_dev->mtu)))
+			return
+
+		net_dbg_ratelimited("%s: tunnel packet is too big, reducing mtu to %d\n",
+					wg_dev->name, new_mtu);
+		WRITE_ONCE(wg_dev->mtu, new_mtu);
+	}
+}
+
 static int send4(struct wg_device *wg, struct sk_buff *skb,
 		 struct endpoint *endpoint, u8 ds, struct dst_cache *cache)
 {
@@ -80,6 +101,10 @@ static int send4(struct wg_device *wg, struct sk_buff *skb,
 		if (cache)
 			dst_cache_set_ip4(cache, &rt->dst, fl.saddr);
 	}
+
+	if (wg->dynamic_mtu)
+		update_wg_mtu_if_needed(wg->dev, rt->dst.dev->mtu, skb->len,
+		                        sizeof(struct iphdr) + sizeof(struct udphdr));
 
 	skb->ignore_df = 1;
 	udp_tunnel_xmit_skb(rt, sock, skb, fl.saddr, fl.daddr, ds,
@@ -147,6 +172,10 @@ static int send6(struct wg_device *wg, struct sk_buff *skb,
 		if (cache)
 			dst_cache_set_ip6(cache, dst, &fl.saddr);
 	}
+
+	if (wg->dynamic_mtu)
+		update_wg_mtu_if_needed(wg->dev, rt->dst.dev->mtu, skb->len,
+		                        sizeof(struct ipv6hdr) + sizeof(struct udphdr));
 
 	skb->ignore_df = 1;
 	udp_tunnel6_xmit_skb(dst, sock, skb, skb->dev, &fl.saddr, &fl.daddr, ds,

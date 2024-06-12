@@ -540,6 +540,8 @@ static int wg_set_device(struct sk_buff *skb, struct genl_info *info)
 	if (flags & WGDEVICE_F_REPLACE_PEERS)
 		wg_peer_remove_all(wg);
 
+	wg->dynamic_mtu = flags & WGDEVICE_F_DYNAMIC_MTU;
+
 	if (info->attrs[WGDEVICE_A_PRIVATE_KEY] &&
 	    nla_len(info->attrs[WGDEVICE_A_PRIVATE_KEY]) ==
 		    NOISE_PUBLIC_KEY_LEN) {
