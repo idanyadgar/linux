@@ -29,6 +29,9 @@ static void update_wg_mtu_if_needed(struct net_device *wg_dev,
 	int encap_packet_size = wg_message_size + nh_overhead;
 	if (unlikely(encap_packet_size > phy_mtu)) {
 		int new_mtu = phy_mtu - MESSAGE_MINIMUM_LENGTH - nh_overhead;
+		if (unlikely(new_mtu >= READ_ONCE(wg_dev->mtu)))
+			return
+
 		net_dbg_ratelimited("%s: tunnel packet is too big, reducing mtu to %d\n",
 					wg_dev->name, new_mtu);
 		WRITE_ONCE(wg_dev->mtu, new_mtu);
