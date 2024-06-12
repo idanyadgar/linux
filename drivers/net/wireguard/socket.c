@@ -21,10 +21,10 @@ static void update_mtu_if_needed(struct net_device *wg_dev,
 		 unsigned int phy_mtu, unsigned int wg_message_size,
 		 unsigned int nh_overhead)
 {
-	/* If the wg interface mtu is too large, the final encapsulated packet
-	 * might be larger than the underlying physical interface mtu, which will
-	 * cause fragmentation. In such a case, reduce the wg interface mtu to
-	 * prevent future cases where we get packets that are too big
+	/* If the encapsulated packet is larger than the underlying physical
+	 * interface mtu, it will be fragmented and we want to avoid that.
+	 * In such a case, reduce the wg interface mtu to prevent future cases
+	 * where we get packets that are too big.
 	 */
 	int encap_packet_size = wg_message_size + nh_overhead;
 	if (unlikely(encap_packet_size > phy_mtu)) {
